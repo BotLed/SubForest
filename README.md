@@ -1,2 +1,2 @@
 # Scrapey
-Data scraping side project WIP built using Selenium and BeautifulSoup (Python)
+Data scraping side project WIP built using Selenium and BeautifulSoup
