@@ -21,7 +21,7 @@ function HexGeomtry({height, position}) {
         <mesh ref={ref}>
             <cylinderGeometry args={[1, 1, height, 6, 1]}/>
         
-            <meshStandardMaterial/>
+            <meshStandardMaterial flatShading/>
         </mesh>
     )
 }
@@ -46,14 +46,17 @@ export default function Test() {
     const hexagons = [];
     const rows = 20;
     const cols = 15;
-    const spacing = 1.9;
+    const spacing = 1.8;
 
+    let height = 1;
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
+            let height = Math.floor(Math.random() * (6 - 1 + 1) + 1); // 6 = max, 1 = min
+            
             // Offset odd rows to make a hexagonal pattern
             const x = col * spacing + (row % 2 === 0 ? spacing / 2 : 0);
             const y = row * spacing * 0.866; // 0.866 = sin(60°), to space hexagons properly
-            hexagons.push({ x, y });
+            hexagons.push({ x, y , height});
         }
     }
 
@@ -67,17 +70,18 @@ export default function Test() {
                 <Canvas
                     camera={{
                         position: [10, 20, 50], // Set camera above center
+                        fov: 80
                     }}
                 >
                 <Environment
                     files="assets/envmap.hdr"
                 />
 
-                <color />
-                <directionalLight position={[3.3, 1.0, 4.4]} intensity={4} />
+                <color attach="background" args={["ivory"]}/>
+                <directionalLight position={[3.3, 1.0, 4.4]} intensity={1} />
 
-                {hexagons.map((pos, index) => (
-                    <HexGeomtry key={index} height={2} position={new THREE.Vector2(pos.x, pos.y)} />
+                {hexagons.map((pos, index, height) => (
+                    <HexGeomtry key={index} height={pos.height} position={new THREE.Vector2(pos.x, pos.y)} />
                 ))}
 
                 <OrbitControls target={[centerX, 10, centerY + 5]}/>
