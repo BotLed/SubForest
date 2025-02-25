@@ -9,7 +9,6 @@ import * as THREE from "three";
 
 
 function HexGeomtry({height, position}) {
-    //const geo = useMemo(() => new THREE.BufferGeometry().translate(position.x, height * 0.5, position.y))
     const ref = useRef()
 
     useEffect(() => {
@@ -27,7 +26,7 @@ function HexGeomtry({height, position}) {
     )
 }
 
-
+// To test environment map
 function ReflectiveSphere() {
     return (
         <mesh>
@@ -39,7 +38,7 @@ function ReflectiveSphere() {
 
 export default function Test() {
     const handleClick = () => {
-        fetch(`/message`) // Example Flask API call
+        fetch(`/message`)
           .then((res) => res.json())
           .then((data) => alert(data.title)); // Show Reddit post title
       };
@@ -47,7 +46,7 @@ export default function Test() {
     const hexagons = [];
     const rows = 20;
     const cols = 15;
-    const spacing = 1.9; // Adjust this value to control the spacing
+    const spacing = 1.9;
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
