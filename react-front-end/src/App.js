@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import Scene from "./components/Scene";
-import Test from "./components/Test";
+import Test from "./components/HexMap";
 
 function App() {
   const [message, setMessage] = useState(0);

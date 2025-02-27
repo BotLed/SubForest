@@ -18,7 +18,7 @@ class App:
 
         @self.app.route("/message")
         def message():
-            return {"title": "The #1 API", "message": "You have entered.... the API ZONE"}
+            return {"title": "SubForest", "message": "You have entered.... the API ZONE"}
     
         @self.app.route("/assets")
         def assets():
