@@ -28,6 +28,10 @@ class App:
         def send_envmap():
             return send_from_directory(self.ASSETS_FOLDER, "envmap.hdr", as_attachment=False)
         
+        @self.app.route("/assets/grass.png")
+        def send_grass():
+            return send_from_directory(self.ASSETS_FOLDER, "grass.png", as_attachment=False)
+        
 
     def run(self):
         self.app.run(debug=False, host="0.0.0.0", port="7630") # since its just an API

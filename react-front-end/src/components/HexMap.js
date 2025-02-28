@@ -2,57 +2,103 @@ import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls } from '@react-three/drei'
 import {createNoise2D} from 'simplex-noise';
 import { useState } from 'react';
+import { useLoader } from '@react-three/fiber'
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
 
 
 
-function HexGeomtry({height, position}) {
+function HexGeomtry({height, position, radius, colour}) {
     const refToHex = useRef();
     const [hovered, setHovered] = useState(false);
-
-    const palette = {
-        "default" : "#d5d8de",
-        "dirt" : "#1a0a09",
-        "grass" : "#62806a"
-    };
+    {/*
+    const [grass] = useLoader(THREE.TextureLoader, [
+    '/assets/grass.png'
+    ])
+    */}
 
     useEffect(() => {
         if (refToHex.current) {
-            refToHex.current.position.set(position.x, height*0.5, position.y)
+            refToHex.current.position.set(position.x, height*0.5, position.y);
         }
-      }, [position, height]);
+      }, [position, height, hovered]);
 
     return (
         <mesh 
-            ref={refToHex} 
-            onPointerOver={() => setHovered(true)} // https://codesandbox.io/p/sandbox/ny3p4?file=%2Fsrc%2FApp.js%3A45%2C47
-            onPointerOut={() => setHovered(false)}
-            >
-            {/*TODO: Make this scale with everything else so changing hexagon dimensions doesn't nuke everything else */}
-            <cylinderGeometry args={[1, 1, height, 6, 1]}/>
-            <meshStandardMaterial color={hovered ? palette.dirt : palette.default} flatShading/> 
+        ref={refToHex} 
+        onPointerOver={(e) => {
+            e.stopPropagation(); // Stops event from reaching further objects
+            setHovered(true);
+        }}
+        onPointerOut={() => setHovered(false)}
+        >
+            <cylinderGeometry args={[radius, radius, height, 6, 1]}/>
+            <meshStandardMaterial color={hovered ? "red" : colour} flatShading/> 
         </mesh>
     )
 }
 
-// To test environment map
-function ReflectiveSphere() {
+
+function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
+    const hexagons = [];
+    const palette = {
+        "grass": "#d4ccb4",
+        "stone": "#74707c",
+        "dirt": "#202436"
+
+        //"default" : "#d5d8de",
+        //"dirt" : "#1a0a09",
+        //"grass" : "#62806a"
+    };
+
+    // Noise Consts
+    const DIRT_HEIGHT = maxHeight * 4;
+    const STONE_HEIGHT = maxHeight * 8;
+
+    const FREQUENCY = 0.1;
+    // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it into database MAYBE????????
+    const noise2D = createNoise2D();
+
+    // Generates pointy top - axial hexagonal grid
+    // https://www.redblobgames.com/grids/hexagons/ THANK YOU RED BLOB GAMES
+    for (let q = -gridRadius; q <= gridRadius; q++) {
+        for (let r = -gridRadius; r < gridRadius; r++) {
+            // Noise
+            let noise = (noise2D(r * FREQUENCY, q * FREQUENCY) + 1) * 0.5;
+            noise = Math.pow(noise, 1.5) * heightVariance;
+            noise = noise * maxHeight;
+
+            if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
+            const x = hexRadius * Math.sqrt(3) * (q + r/2);
+            const y = hexRadius * 3/2 * r;
+
+            let colour = palette.grass;
+            if(noise < DIRT_HEIGHT) {
+                colour = palette.dirt;
+            } else if(noise < STONE_HEIGHT) {
+                colour = palette.stone;
+            }
+
+            hexagons.push({ x, y, noise, hexRadius, colour});
+        }
+    }
+
     return (
         <mesh>
-            <sphereGeometry args={[5, 10, 10]} />
-            <meshStandardMaterial metalness={1} roughness={0}/>
+        {hexagons.map((pos, index) => (
+            <HexGeomtry 
+            key={index} 
+            height={pos.noise} 
+            position={new THREE.Vector2(pos.x, pos.y)} 
+            radius={pos.hexRadius} 
+            colour={pos.colour} />
+        ))}
         </mesh>
     )
 }
 
-export default function Test() {
-    const handleClick = () => {
-        fetch(`/message`)
-          .then((res) => res.json())
-          .then((data) => alert(data.title)); // Show Reddit post title
-      };
 
+export default function Test() {
       const [titleText, setTitleText] = useState('');
       // TEMPORARY - MOVE TO SEPARATE FUNCTION LATER
     useEffect(() => {
@@ -63,45 +109,9 @@ export default function Test() {
         });
     }, []); // Empty dependency array to run once on mount
 
-      
-    const hexagons = [];
-    const rows = 40;
-    const cols = 40;
-    const gridRadius = 30;
-
-    const SIN_60 = Math.sin(1.042);
-    const HEX_RADIUS = 1; // Defined in HexGeometry : cylinderGeometry arg 1,2
-    const spacing = Math.sqrt(3) * HEX_RADIUS;
-
-    // Noise Consts
-    const HEIGHT_VARIANCE = 8;
-    const FRQUENCY = 0.1;
-    // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it into database MAYBE????????
-    const noise2D = createNoise2D();
-
-    // Generates pointy top - axial hexagonal grid
-    for (let q = -gridRadius; q <= gridRadius; q++) {
-        for (let r = -gridRadius; r < gridRadius; r++) {
-            // Noise
-            let noise = (noise2D(r * FRQUENCY, q * FRQUENCY) + 1) * 0.5;
-            noise = Math.pow(noise, 1.5) * HEIGHT_VARIANCE;
-            
-            // Spacing ( Doubled coordinates )
-            // q = col
-            // r = row
-            if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
-            const x = HEX_RADIUS * Math.sqrt(3) * (q + r/2);
-            const y = HEX_RADIUS * 3/2 * r;
- 
-            
-            hexagons.push({ x, y, noise});
-        }
-    }
-
-    const centerX = (cols - 1) * spacing / 2;
-    const centerY = (rows - 1) * spacing * 0.866 / 2;
-    const centerPosition = new THREE.Vector3(centerX, 0, centerY);
-
+    const centerX = 0;
+    const centerY = 0;
+    const backgroundColor = "ivory";
     return (
         <div id="canvas-container" style={{ width: "100vw", height: "100vh" }}>
                 <Canvas
@@ -110,17 +120,14 @@ export default function Test() {
                         fov: 80
                     }}
                 >
-                
-                <directionalLight position={[3.3, 1.0, 4.4]} intensity={1} />
-                <color attach="background" args={["ivory"]}/>
+                <ambientLight intensity={0.2}/>
+                <color attach="background" args={[backgroundColor]}/>
                 <Environment 
                 files="assets/envmap.hdr" // Environment auto handles loading of envMap using RGBELoader: https://drei.docs.pmnd.rs/staging/environment
                 /> 
 
-                {/* REPLACE THIS FUCKING BULLSHIT WITH A MESH SO THERE AREN't 1000000 DRAW CALLS */}   
-                {hexagons.map((pos, index, noise) => (
-                    <HexGeomtry key={index} height={pos.noise} position={new THREE.Vector2(pos.x, pos.y)} />
-                ))}
+                <GenerateMap gridRadius={35} hexRadius={5} maxHeight={4} heightVariance={15}/>
+                
                 
                 {/*
                 <Text color="black" position={[centerX, 15, 0]} fontSize={5}> 
