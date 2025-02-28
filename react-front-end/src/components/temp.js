@@ -36,16 +36,6 @@ function HexGeomtry({height, position}) {
     )
 }
 
-// To test environment map
-function ReflectiveSphere() {
-    return (
-        <mesh>
-            <sphereGeometry args={[5, 10, 10]} />
-            <meshStandardMaterial metalness={1} roughness={0}/>
-        </mesh>
-    )
-}
-
 export default function Test() {
     const handleClick = () => {
         fetch(`/message`)
@@ -64,13 +54,8 @@ export default function Test() {
     }, []); // Empty dependency array to run once on mount
 
       
-    // Hexagon Consts ( CALCULATIONS ARE FOR FLAT TOP GRID )
     const hexagons = [];
-    const rows = 40;
-    const cols = 40;
     const gridRadius = 30;
-
-    const SIN_60 = Math.sin(1.042);
     const HEX_RADIUS = 1; // Defined in HexGeometry : cylinderGeometry arg 1,2
     const spacing = Math.sqrt(3) * HEX_RADIUS;
 
@@ -79,28 +64,26 @@ export default function Test() {
     const FRQUENCY = 0.1;
     // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it into database MAYBE????????
     const noise2D = createNoise2D();
-    
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
+
+    // Generates pointy top - axial hexagonal grid
+    // https://www.redblobgames.com/grids/hexagons/ THANK YOU RED BLOB GAMES
+    for (let q = -gridRadius; q <= gridRadius; q++) {
+        for (let r = -gridRadius; r < gridRadius; r++) {
             // Noise
-            let noise = (noise2D(row * FRQUENCY, col * FRQUENCY) + 1) * 0.5;
+            let noise = (noise2D(r * FRQUENCY, q * FRQUENCY) + 1) * 0.5;
             noise = Math.pow(noise, 1.5) * HEIGHT_VARIANCE;
-            
-            // Spacing ( Doubled coordinates )
-            // q = col
-            // r = row
-            const x = col * spacing + (row % 2 === 0 ? spacing / 2 : 0);
-            const y = (row * spacing * SIN_60); 
+
+            if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
+            const x = HEX_RADIUS * Math.sqrt(3) * (q + r/2);
+            const y = HEX_RADIUS * 3/2 * r;
  
-            
             hexagons.push({ x, y, noise});
         }
     }
 
-    const centerX = (cols - 1) * spacing / 2;
-    const centerY = (rows - 1) * spacing * 0.866 / 2;
-    const centerPosition = new THREE.Vector3(centerX, 0, centerY);
 
+    const centerX = 0;
+    const centerY = 0;
     return (
         <div id="canvas-container" style={{ width: "100vw", height: "100vh" }}>
                 <Canvas
@@ -117,7 +100,12 @@ export default function Test() {
                 /> 
 
                 {/* REPLACE THIS FUCKING BULLSHIT WITH A MESH SO THERE AREN't 1000000 DRAW CALLS */}   
+                <Merged meshes={[hexagons]}>
+                        
+
+                </Merged> 
                 {hexagons.map((pos, index, noise) => (
+                  
                     <HexGeomtry key={index} height={pos.noise} position={new THREE.Vector2(pos.x, pos.y)} />
                 ))}
                 
@@ -127,7 +115,7 @@ export default function Test() {
                 </Text>
                 */}
 
-                <OrbitControls target={[centerX, 10, centerY + 5]} enablePan={false} autoRotate/>
+                <OrbitControls target={[centerX, 10, centerY + 5]}/>
             </Canvas>
         </div>
     )
