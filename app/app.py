@@ -32,6 +32,18 @@ class App:
         def send_grass():
             return send_from_directory(self.ASSETS_FOLDER, "grass.png", as_attachment=False)
         
+        @self.app.route("/assets/tree.glb")
+        def send_tree():
+            return send_from_directory(self.ASSETS_FOLDER, "tree.glb", as_attachment=False)
+        
+        @self.app.route("/assets/fall_tree.glb")
+        def send_fall_tree():
+            return send_from_directory(self.ASSETS_FOLDER, "fall_tree.glb", as_attachment=False)
+        
+        @self.app.route("/assets/tree_stump.glb")
+        def send_tree_stump():
+            return send_from_directory(self.ASSETS_FOLDER, "tree_stump.glb", as_attachment=False)
+        
 
     def run(self):
         self.app.run(debug=False, host="0.0.0.0", port="7630") # since its just an API
