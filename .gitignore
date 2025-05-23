@@ -3,3 +3,5 @@ venv/
 __pycache__/
 .praw.ini
 Planning/
+react-front-end/package-lock.json
+react-front-end/node_modules
