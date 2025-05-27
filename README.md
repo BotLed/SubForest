@@ -38,9 +38,8 @@ Utilizes React-Three-Fiber (React/Three.js) on the front-end and Flask on the ba
    npm start
    
    ```
-   
 
-**Current Progress screenshots as of Feb 28, 2025**
+
 ![image](app/assets/progress1.png)
 
 ![image](app/assets/progress2.png)
