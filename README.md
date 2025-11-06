@@ -3,9 +3,10 @@ A web app that uses Perlin Noise procedural generation to visualize any subreddi
 
 Utilizes React-Three-Fiber (React/Three.js) on the front-end and Flask on the back-end, with the back-end acting as a REST API to communicate with the front-end. 
 
-## Required Libraries and Third-Party Tools
+## Requirements
 - **Node v23.5.0** or newer
 - **NPM v10.9.2** or newer
+- **Python 3.12 or higher**
 
 ## How to Build
 1. **Clone the repository using Git**
@@ -14,10 +15,10 @@ Utilizes React-Three-Fiber (React/Three.js) on the front-end and Flask on the ba
    git clone https://github.com/BotLed/SubForest.git
    
    ```
-2. **In the top level of the repository install necessary packages for Flask**
+2. **In the root level of the repository install necessary packages for Flask (Do this in an environment preferably)**
    
    ```bash
-   pip install requirements.txt
+   pip install -r requirements.txt
    
    ```
 3. **Navigate into the 'react-front-end' directory and run**
