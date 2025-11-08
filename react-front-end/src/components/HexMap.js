@@ -5,81 +5,13 @@ import {createNoise2D} from 'simplex-noise';
 import { useState } from 'react';
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
-import { useGLTF } from '@react-three/drei';
+import Tree from "./Tree.js";
+import Cloud from "./Cloud.js";
 
 // ----------
 // MAJOR TODO: Merge meshes where possible to avoid performance issues.
-// Comparmenatlize logic so you don't have 700 functions in one component.
+// 
 // ----------
-
-function Tree({height, position, model}) {
-    const MODELS = {
-        "Oak" : 'assets/tree.glb',
-        "Spruce" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-lime/model.gltf',
-        "Birch" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-spruce/model.gltf',
-        "Fall_Tree" : 'assets/fall_tree.glb',
-        "Tree_Stump" : 'assets/tree_stump.glb'
-    }
-    // "Oak", "Spruce", "Birch", "Fall_Tree", "Tree_Stump"
-
-    const { scene } = useGLTF(MODELS[model]);
-    const refToTree = useRef();
-
-
-    useEffect(() => {
-        if (refToTree.current) {
-            refToTree.current.position.set(position.x, height, position.y);
-
-            //TODO: make the models equal size in Blender to avoid scaling
-            if(model == "Oak" || model == "Fall_Tree") {
-                refToTree.current.scale.set(20, 20, 20);
-            }
-            if(model == "Tree_Stump") {
-                refToTree.current.scale.set(50, 50, 50);
-            }
-            if(model == "Spruce" || model == "Birch") {
-                refToTree.current.scale.set(2, 2, 2);
-            }
-
-        }
-      }, [position, height]);
-
-    return (
-        <group castShadow>
-        <primitive ref={refToTree} object={scene.clone()}/> 
-        </group>
-    )  // Re-use instead of loading each time
-}
-
-
-function Cloud({height, position, size}) {
-    const refToCloud = useRef();
-
-    useEffect(() => {
-        if(refToCloud.current) {
-            refToCloud.current.position.set(position.x, height, position.y)
-            refToCloud.current.scale.set(size);
-        }
-    })
-
-    return (
-        <mesh position={[0, 0, 0]} scale={[1,1,1]}>
-            <mesh position={[130, 190, 100]} scale={[2,2,2]}>
-                <sphereGeometry args={[5, 10, 6]}/>
-                <meshStandardMaterial flatShading/>
-            </mesh>
-
-            <mesh position={[100, 190, 100]} scale={[2,2,2]}>
-                <sphereGeometry args={[5, 10, 6]}/>
-                <meshStandardMaterial flatShading/>
-            </mesh>
-            <mesh position={[115, 190, 100]} scale={[3,3,3]}>
-                <sphereGeometry args={[5, 10, 6]}/>
-                <meshStandardMaterial flatShading/>
-            </mesh>
-        </mesh>
-    )
-}
 
 
 function HexGeomtry({height, position, radius, colour}) {
@@ -96,7 +28,7 @@ function HexGeomtry({height, position, radius, colour}) {
         <mesh 
         ref={refToHex} 
         onPointerOver={(e) => {
-            e.stopPropagation(); // Stops event from reaching further objects
+            e.stopPropagation(); // Stops hover effect from affecting other tiles
             setHovered(true);
         }}
         onPointerOut={() => setHovered(false)}
@@ -107,129 +39,116 @@ function HexGeomtry({height, position, radius, colour}) {
     )
 }
 
-
+/**
+ * Generates a procedurally generated hexagonal grid with trees placed on random tiles
+ * 
+ * Perlin noise used to determine hex height
+ * Terrain type/colouring adjustable via leva UI controls
+ * 
+ * @param {number} gridRadius - the size of the grid
+ * @param {number} hexRadius - the size of each tile
+ * @param {number} maxHeight - the height that the tiles will top out at
+ * @param {number} heightVariance - how much the height varies between each tile
+ * @returns {JSX.element}
+ */
 function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
-    const hexagons = [];
+    const tiles = [];
     const trees = [];
-    const paletteDark = {
-        "grass": "#d4ccb4",
-        "stone": "#74707c",
-        "dirt": "#202436"
+    const possibleTreeModels = ["Oak", "Spruce", "Birch", "Tree_Stump"];
 
-        //"default" : "#d5d8de",
-        //"dirt" : "#1a0a09",
-        //"grass" : "#62806a"
-    };
-    const paletteNatural = {
+    const palette = {
+        "dirt": '#582F0E', 
+        "ldirt": '#7F4F24',
+        "lgrass": '#656D4A',
         "grass": "#414833",
-        "grass2": "#4a523a",
-        "lowgrass" : "#656D4A",
-        "dirt": "#7F4F24",
-        "lowdirt": "#582F0E",
-        "variance": "#0E86CC"
+        "mountain": "#728071",
+        "water": "#0E86CC"    
     }
-    const possibleModels = ["Oak", "Spruce", "Birch", "Tree_Stump"];
 
 
     // DEBUG UI
-    const {dirtHeight, ldirtHeight, lGrassHeight, mountainHeight, 
-           dirtColour, ldirtColour, lgrassColour, grassColour, grass2Colour, waterColour } = useControls({
-    dirtHeight : {
-        value: 1.5,
-        min: 0,
-        max: 20,
-        step: 0.25
-    },
-    ldirtHeight : {
-        value: 2.5,
-        min: 0,
-        max: 20,
-        step: 0.25
-    }, 
-    lGrassHeight : {
-        value: 7.5,
-        min: 0,
-        max: 20,
-        step: 0.25
-    },
-    mountainHeight : {
-        value: 49,
-        min: 0,
-        max: 100,
-        step: 0.25
-    },
-    dirtColour: '#582F0E', 
-    ldirtColour: '#7F4F24',
-    lgrassColour: '#656D4A',
-    grassColour: "#414833",
-    grass2Colour: "#728071",
-    waterColour: "#0E86CC"
+    const {dirtHeightUI, ldirtHeightUI, lGrassHeightUI, grassHeightUI, waterHeightUI} = useControls({
+    dirtHeightUI : {value: 1.5, min: 0, max: 20, step: 0.25 },
+    ldirtHeightUI : { value: 2.5, min: 0, max: 20, step: 0.25 }, 
+    lGrassHeightUI : { value: 5, min: 0, max: 20, step: 0.25 },
+    grassHeightUI : { value: 9.75, min: 0, max: 20, step: 0.25 },
+    waterHeightUI : { value: 0.5, min: 0, max: 20, step: 0.25 }
 });
-// --------------------------
-    
 
     // Noise Consts
-    const DIRT_HEIGHT = maxHeight * dirtHeight;
-    const LOWDIRT_HEIGHT = maxHeight * ldirtHeight;
-    const LOWGRASS_HEIGHT = maxHeight * lGrassHeight;
+    const dirtHeight = maxHeight * dirtHeightUI;
+    const lowDirtHeight = maxHeight * ldirtHeightUI;
+    const lowGrassHeight = maxHeight * lGrassHeightUI;
 
     // Scale up to make water dominate dirt, scale down to do the opposite
-    const WATER_HEIGHT = maxHeight * 2; 
-    const GRASS_HEIGHT = maxHeight * mountainHeight;
+    const waterHeight = maxHeight * waterHeightUI; 
+    const grassHeight = maxHeight * grassHeightUI;
 
+    const TREE_FREQUENCY = 0.965
     const FREQUENCY = 0.1;
+    //const FREQUENCY2 = 0.2;
     // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it in database MAYBE????????
     const noise2D = createNoise2D();
 
     // Generates pointy top - axial hexagonal grid
-    // https://www.redblobgames.com/grids/hexagons/ THANK YOU RED BLOB GAMES
+    // https://www.redblobgames.com/grids/tiles/ THANK YOU RED BLOB GAMES
     for (let q = -gridRadius; q <= gridRadius; q++) {
         for (let r = -gridRadius; r < gridRadius; r++) {
             // Noise
-            let height = (noise2D(r * FREQUENCY, q * FREQUENCY) + 1) * 0.5;
-            height = Math.pow(height, 1.5) * heightVariance;
-            height = height * maxHeight;
+            let tileHeight = (noise2D(r * FREQUENCY, q * FREQUENCY) + 1) * 0.5;
+            tileHeight = Math.pow(tileHeight, 1.5) * heightVariance;
+            tileHeight = tileHeight * maxHeight;
 
-            let variance = (noise2D(r * FREQUENCY, q * FREQUENCY) + 1) * 0.5;
-            variance = Math.pow(height, 1.5) * heightVariance;
-            variance = height * maxHeight;
-
+            /** 
+            let variance = (noise2D(r * FREQUENCY2, q * FREQUENCY2) + 1) * 0.5;
+            variance = Math.pow(variance, 1.5) * heightVariance;
+            variance = variance * maxHeight;
+            */
+            
             if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
             const x = hexRadius * Math.sqrt(3) * (q + r/2);
             const y = hexRadius * 3/2 * r;
             
-            // < = bottom up generation, > = top down generation
-            let colour = grassColour;
+            /** 
+             * This creates a colouring scheme where each tile type has its own height interval (sort of like a layered cake)
+             * the block checks the tile's height starting from the lowest interval and moves up an interval each time.
+             * Once it finds the correct interval, it sets the tile's type to the interval's type.
+             * If no appropriate interval is found in time then it reaches/defaults to 'mountain', the highest interval.
+             * */ 
+            let tileType = palette["mountain"]; // Defines tileType and sets the default tile type, voiding need of 'else' (two birds one stone)
             let isWater = false;
-            if(height < DIRT_HEIGHT) {
-                if(variance < WATER_HEIGHT) {
-                    colour = waterColour;
-                    isWater = true;
-                } else {    
-                    colour = dirtColour;
-                } 
-            } else if(height < LOWDIRT_HEIGHT) {
-                colour = ldirtColour;
-            } else if(height < LOWGRASS_HEIGHT) {
-                colour = lgrassColour;
-            } else if(variance > GRASS_HEIGHT) {
-                colour = grass2Colour;
+            if (tileHeight < waterHeight) {
+                tileType = palette["water"];
+                isWater = true;
+            }
+            else if(tileHeight < dirtHeight) {
+                tileType = palette["dirt"];
+            } else if(tileHeight < lowDirtHeight) {
+                tileType = palette["ldirt"];
+            } else if(tileHeight < lowGrassHeight) {
+                tileType = palette["lgrass"];
+            } else if(tileHeight < grassHeight) {
+                tileType = palette["grass"];
             }
 
-            hexagons.push({ x, y, height, hexRadius, colour});
+            tiles.push({ x, y, height: tileHeight, hexRadius, colour: tileType});
 
-            const random = Math.floor(Math.random() * possibleModels.length);
-            const model = possibleModels[random];
-            if(Math.random() > 0.965 && !(isWater)) {
-                trees.push({x, y, height, model})
-                console.log(model);
+            // Select random tree model from possible models
+            const random = Math.floor(Math.random() * possibleTreeModels.length);
+            const chosenTreeModel = possibleTreeModels[random];
+            
+            // Determines if a tree is placed on current tile
+            if(Math.random() > TREE_FREQUENCY && !(isWater)) {
+                trees.push({x, y, height: tileHeight, chosenTreeModel})
+                //console.log(model);
             }
+
         }
     }
 
     return (
         <mesh>
-        {hexagons.map((pos, index) => (
+        {tiles.map((pos, index) => (
             <HexGeomtry 
             key={index} 
             height={pos.height} 
@@ -242,7 +161,7 @@ function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
             key={index} 
             height={pos.height} 
             position={new THREE.Vector2(pos.x, pos.y)} 
-            model={pos.model}/>
+            model={pos.chosenTreeModel}/>
         ))}
         </mesh>
     )
@@ -274,9 +193,11 @@ export default function HexMap() {
                 >
                 
                 <directionalLight position={[10, 80, 300]} intensity = {1} castShadow />
-
+                
                 <color attach="background" args={[backgroundColor]}/>
+
                 <Environment 
+                // 360 degree image of environment that helps simulates reflections, lightining. Is essential
                 files="assets/envmap.hdr" // Environment auto handles loading of envMap using RGBELoader: https://drei.docs.pmnd.rs/staging/environment
                 /> 
 
