@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import Scene from "./components/Scene";
 import HexMap from "./components/HexMap";

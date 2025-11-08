@@ -2,6 +2,8 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { useState } from "react";
 
+//TODO: Make this call everything else instead of keeping logic in HexMap
+
 function Box(props) {
   const [hovered, setHovered] = useState(false);
   const [clicked, setClicked] = useState(false);
