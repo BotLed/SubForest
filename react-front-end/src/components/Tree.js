@@ -20,13 +20,13 @@ export default function Tree({height, position, model}) {
             refToTree.current.position.set(position.x, height, position.y);
 
             //TODO: make the models equal size in Blender to avoid scaling
-            if(model == "Oak" || model == "Fall_Tree") {
+            if(model === "Oak" || model === "Fall_Tree") {
                 refToTree.current.scale.set(20, 20, 20);
             }
-            if(model == "Tree_Stump") {
+            if(model === "Tree_Stump") {
                 refToTree.current.scale.set(50, 50, 50);
             }
-            if(model == "Spruce" || model == "Birch") {
+            if(model === "Spruce" || model === "Birch") {
                 refToTree.current.scale.set(2, 2, 2);
             }
 

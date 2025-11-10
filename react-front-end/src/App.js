@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import Scene from "./components/Scene";
-import HexMap from "./components/HexMap";
+import World from "./components/World";
 
 function App() {
   const [message, setMessage] = useState(0);
@@ -16,7 +16,7 @@ function App() {
   return (
     <div className="App">
       <div>
-        <HexMap />
+        <World />
       </div>
     </div>
   );
