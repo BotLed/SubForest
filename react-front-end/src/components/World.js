@@ -1,43 +1,18 @@
 import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls } from '@react-three/drei';
-import { useControls } from 'leva'; // Imported for debug purposes
+//import { useControls } from 'leva';
 import {createNoise2D} from 'simplex-noise';
-import { useState } from 'react';
-import { useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import * as THREE from "three";
 import Tree from "./Tree.js";
 import Cloud from "./Cloud.js";
+import Tile from "./Tile.js"
 
 // ----------
 // MAJOR TODO: Merge meshes where possible to avoid performance issues.
-// 
+// See: comment on RenderMap
 // ----------
 
-
-function HexGeomtry({height, position, radius, colour}) {
-    const refToHex = useRef();
-    const [hovered, setHovered] = useState(false);
-
-    useEffect(() => {
-        if (refToHex.current) {
-            refToHex.current.position.set(position.x, height*0.5, position.y);
-        }
-      }, [position, height, hovered]);
-
-    return (
-        <mesh 
-        ref={refToHex} 
-        onPointerOver={(e) => {
-            e.stopPropagation(); // Stops hover effect from affecting other tiles
-            setHovered(true);
-        }}
-        onPointerOut={() => setHovered(false)}
-        >
-            <cylinderGeometry args={[radius, radius, height, 6, 1]}/>
-            <meshStandardMaterial color={hovered ? "red" : colour} flatShading receiveShadow/> 
-        </mesh>
-    )
-}
 
 /**
  * Generates a procedurally generated hexagonal grid with trees placed on random tiles
@@ -51,10 +26,8 @@ function HexGeomtry({height, position, radius, colour}) {
  * @param {number} heightVariance - how much the height varies between each tile
  * @returns {JSX.element}
  */
-function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
+function generateTiles({gridRadius, hexRadius, maxHeight, heightVariance}) {
     const tiles = [];
-    const trees = [];
-    const possibleTreeModels = ["Oak", "Spruce", "Birch", "Tree_Stump"];
 
     const palette = {
         "dirt": '#582F0E', 
@@ -65,27 +38,15 @@ function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
         "water": "#0E86CC"    
     }
 
-
-    // DEBUG UI
-    const {dirtHeightUI, ldirtHeightUI, lGrassHeightUI, grassHeightUI, waterHeightUI} = useControls({
-    dirtHeightUI : {value: 1.5, min: 0, max: 20, step: 0.25 },
-    ldirtHeightUI : { value: 2.5, min: 0, max: 20, step: 0.25 }, 
-    lGrassHeightUI : { value: 5, min: 0, max: 20, step: 0.25 },
-    grassHeightUI : { value: 9.75, min: 0, max: 20, step: 0.25 },
-    waterHeightUI : { value: 0.5, min: 0, max: 20, step: 0.25 }
-});
-
     // Noise Consts
-    const dirtHeight = maxHeight * dirtHeightUI;
-    const lowDirtHeight = maxHeight * ldirtHeightUI;
-    const lowGrassHeight = maxHeight * lGrassHeightUI;
+    const waterHeight = maxHeight * 0.5; 
+    const dirtHeight = maxHeight * 1.5;
+    const lowDirtHeight = maxHeight * 2.5;
+    const lowGrassHeight = maxHeight * 5;
+    const grassHeight = maxHeight * 9.5;
 
-    // Scale up to make water dominate dirt, scale down to do the opposite
-    const waterHeight = maxHeight * waterHeightUI; 
-    const grassHeight = maxHeight * grassHeightUI;
-
-    const TREE_FREQUENCY = 0.965
     const FREQUENCY = 0.1;
+    const FREQUENCY2 = 0.05
     //const FREQUENCY2 = 0.2;
     // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it in database MAYBE????????
     const noise2D = createNoise2D();
@@ -99,11 +60,12 @@ function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
             tileHeight = Math.pow(tileHeight, 1.5) * heightVariance;
             tileHeight = tileHeight * maxHeight;
 
-            /** 
+            
             let variance = (noise2D(r * FREQUENCY2, q * FREQUENCY2) + 1) * 0.5;
             variance = Math.pow(variance, 1.5) * heightVariance;
             variance = variance * maxHeight;
-            */
+
+            tileHeight = (tileHeight * 0.98) * (variance * 0.03)
             
             if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
             const x = hexRadius * Math.sqrt(3) * (q + r/2);
@@ -115,41 +77,72 @@ function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
              * Once it finds the correct interval, it sets the tile's type to the interval's type.
              * If no appropriate interval is found in time then it reaches/defaults to 'mountain', the highest interval.
              * */ 
-            let tileType = palette["mountain"]; // Defines tileType and sets the default tile type, voiding need of 'else' (two birds one stone)
-            let isWater = false;
+            let tileColour = palette["mountain"]; // Defines tileType and sets the default tile type, voiding need of 'else' (two birds one stone)
+            let tileType = "mountain"
             if (tileHeight < waterHeight) {
-                tileType = palette["water"];
-                isWater = true;
+                tileType = "water"
+                tileColour = palette["water"];
             }
             else if(tileHeight < dirtHeight) {
-                tileType = palette["dirt"];
+                tileType = "dirt" 
+                tileColour = palette[tileType];
             } else if(tileHeight < lowDirtHeight) {
-                tileType = palette["ldirt"];
+                tileType = "ldirt"
+                tileColour = palette[tileType];
             } else if(tileHeight < lowGrassHeight) {
-                tileType = palette["lgrass"];
+                tileType = "lgrass"
+                tileColour = palette[tileType];
             } else if(tileHeight < grassHeight) {
-                tileType = palette["grass"];
+                tileType = "grass"
+                tileColour = palette[tileType];
             }
 
-            tiles.push({ x, y, height: tileHeight, hexRadius, colour: tileType});
-
-            // Select random tree model from possible models
-            const random = Math.floor(Math.random() * possibleTreeModels.length);
-            const chosenTreeModel = possibleTreeModels[random];
-            
-            // Determines if a tree is placed on current tile
-            if(Math.random() > TREE_FREQUENCY && !(isWater)) {
-                trees.push({x, y, height: tileHeight, chosenTreeModel})
-                //console.log(model);
-            }
-
+            tiles.push({x, y, height: tileHeight, hexRadius, colour: tileColour, type: tileType});
         }
     }
+    return tiles;
+}
 
+
+function generateTrees({tiles}) {
+    const TreeModels = ["Oak", "Spruce", "Birch", "Tree_Stump"];
+    const trees = [];
+    const TREE_FREQUENCY = 0.965
+
+    for(let i = 0; i < tiles.length; i++) {
+        let current_tile = tiles[i];
+        let isWater = false;
+
+        const random = Math.floor(Math.random() * TreeModels.length);
+        const chosenTreeModel = TreeModels[random];
+
+        if (current_tile.type === "water") {
+            isWater = true;
+        }
+
+        // Determines if a tree is placed on current tile
+        if(Math.random() > TREE_FREQUENCY && !(isWater)) {
+            trees.push({x: current_tile.x , y: current_tile.y, height: current_tile.height, chosenTreeModel})
+            console.log(chosenTreeModel);
+        }
+    }
+    return trees;
+}
+
+
+function test({tiles}) {
+
+}
+
+/* I figured out how to use Instances to reduce the 3500 draw calls (INSANITY) but I don't like how it takes
+* away customization and it feels janky/weird.
+* I'll think about it more but I don't like sacrifing my Tile component.
+*/
+function RenderMap({tiles, trees}) {
     return (
         <mesh>
         {tiles.map((pos, index) => (
-            <HexGeomtry 
+            <Tile 
             key={index} 
             height={pos.height} 
             position={new THREE.Vector2(pos.x, pos.y)} 
@@ -168,9 +161,12 @@ function GenerateMap({gridRadius, hexRadius, maxHeight, heightVariance}) {
 }
 
 
-export default function HexMap() {
-      const [titleText, setTitleText] = useState('');
-      // TEMPORARY - MOVE TO SEPARATE FUNCTION LATER
+export default function World() {
+    const [titleText, setTitleText] = useState('');
+    const [tiles, setTiles] = useState([]);
+    const [trees, setTrees] = useState([]);
+    
+    // TEMPORARY - MOVE TO SEPARATE FUNCTION LATER
     useEffect(() => {
         fetch('/message')
             .then((res) => res.json())
@@ -178,6 +174,13 @@ export default function HexMap() {
             setTitleText(data.title);
         });
     }, []); // Empty dependency array to run once on mount
+
+    useEffect(() => {
+        const tiles = generateTiles({ gridRadius: 35, hexRadius: 6, maxHeight: 5, heightVariance: 15 });
+        const trees = generateTrees({tiles: tiles})
+        setTiles(tiles)
+        setTrees(trees)
+    }, [])
 
     const centerX = 0;
     const centerY = 0;
@@ -193,7 +196,7 @@ export default function HexMap() {
                 >
                 
                 <directionalLight position={[10, 80, 300]} intensity = {1} castShadow />
-                
+
                 <color attach="background" args={[backgroundColor]}/>
 
                 <Environment 
@@ -201,11 +204,9 @@ export default function HexMap() {
                 files="assets/envmap.hdr" // Environment auto handles loading of envMap using RGBELoader: https://drei.docs.pmnd.rs/staging/environment
                 /> 
 
-                <GenerateMap gridRadius={35} hexRadius={5} maxHeight={5} heightVariance={15} castShadow/>
-
-                <Cloud/>
-
                 <OrbitControls target={[centerX, 10, centerY + 5]}/>
+
+                <RenderMap tiles={tiles} trees={trees}/>
             </Canvas>
         </div>
     )
