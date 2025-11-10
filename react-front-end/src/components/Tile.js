@@ -9,7 +9,7 @@ export default function Tile({height, position, radius, colour, type}) {
             refToHex.current.position.set(position.x, height*0.5, position.y);
         }
       }, [position, height, hovered]);
-
+    
     return (
         <mesh 
         ref={refToHex} 

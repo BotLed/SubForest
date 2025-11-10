@@ -22,7 +22,7 @@ export default function Cloud({height, position, size}) {
                 <meshStandardMaterial flatShading/>
             </mesh>
             <mesh position={[115, 190, 100]} scale={[3,3,3]}>
-                <sphereGeometry args={[5, 10, 6]}/>
+                <sphereGeometry args={[5 * size, 10, 6]}/>
                 <meshStandardMaterial flatShading/>
             </mesh>
         </mesh>

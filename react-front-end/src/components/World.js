@@ -10,6 +10,7 @@ import Tile from "./Tile.js"
 
 // ----------
 // MAJOR TODO: Merge meshes where possible to avoid performance issues.
+// See: comment on RenderMap
 // ----------
 
 
@@ -45,6 +46,7 @@ function generateTiles({gridRadius, hexRadius, maxHeight, heightVariance}) {
     const grassHeight = maxHeight * 9.5;
 
     const FREQUENCY = 0.1;
+    const FREQUENCY2 = 0.05
     //const FREQUENCY2 = 0.2;
     // https://www.npmjs.com/package/simplex-noise -> look into this for creating unique seed for each sub and storing it in database MAYBE????????
     const noise2D = createNoise2D();
@@ -58,11 +60,12 @@ function generateTiles({gridRadius, hexRadius, maxHeight, heightVariance}) {
             tileHeight = Math.pow(tileHeight, 1.5) * heightVariance;
             tileHeight = tileHeight * maxHeight;
 
-            /** 
+            
             let variance = (noise2D(r * FREQUENCY2, q * FREQUENCY2) + 1) * 0.5;
             variance = Math.pow(variance, 1.5) * heightVariance;
             variance = variance * maxHeight;
-            */
+
+            tileHeight = (tileHeight * 0.98) * (variance * 0.03)
             
             if (Math.abs(q + r) > gridRadius) continue; // constraint q + r + s = 0
             const x = hexRadius * Math.sqrt(3) * (q + r/2);
@@ -127,6 +130,14 @@ function generateTrees({tiles}) {
 }
 
 
+function test({tiles}) {
+
+}
+
+/* I figured out how to use Instances to reduce the 3500 draw calls (INSANITY) but I don't like how it takes
+* away customization and it feels janky/weird.
+* I'll think about it more but I don't like sacrifing my Tile component.
+*/
 function RenderMap({tiles, trees}) {
     return (
         <mesh>
@@ -185,7 +196,7 @@ export default function World() {
                 >
                 
                 <directionalLight position={[10, 80, 300]} intensity = {1} castShadow />
-                
+
                 <color attach="background" args={[backgroundColor]}/>
 
                 <Environment 
@@ -193,12 +204,9 @@ export default function World() {
                 files="assets/envmap.hdr" // Environment auto handles loading of envMap using RGBELoader: https://drei.docs.pmnd.rs/staging/environment
                 /> 
 
-                <RenderMap tiles={tiles} trees={trees}/>
-
-                <Cloud/>
-
                 <OrbitControls target={[centerX, 10, centerY + 5]}/>
 
+                <RenderMap tiles={tiles} trees={trees}/>
             </Canvas>
         </div>
     )
