@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-export default function Tile({height, position, radius, colour}) {
+export default function Tile({height, position, radius, colour, type}) {
     const refToHex = useRef();
     const [hovered, setHovered] = useState(false);
 

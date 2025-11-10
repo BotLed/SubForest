@@ -74,21 +74,27 @@ function generateTiles({gridRadius, hexRadius, maxHeight, heightVariance}) {
              * Once it finds the correct interval, it sets the tile's type to the interval's type.
              * If no appropriate interval is found in time then it reaches/defaults to 'mountain', the highest interval.
              * */ 
-            let tileType = palette["mountain"]; // Defines tileType and sets the default tile type, voiding need of 'else' (two birds one stone)
+            let tileColour = palette["mountain"]; // Defines tileType and sets the default tile type, voiding need of 'else' (two birds one stone)
+            let tileType = "mountain"
             if (tileHeight < waterHeight) {
-                tileType = palette["water"];
+                tileType = "water"
+                tileColour = palette["water"];
             }
             else if(tileHeight < dirtHeight) {
-                tileType = palette["dirt"];
+                tileType = "dirt" 
+                tileColour = palette[tileType];
             } else if(tileHeight < lowDirtHeight) {
-                tileType = palette["ldirt"];
+                tileType = "ldirt"
+                tileColour = palette[tileType];
             } else if(tileHeight < lowGrassHeight) {
-                tileType = palette["lgrass"];
+                tileType = "lgrass"
+                tileColour = palette[tileType];
             } else if(tileHeight < grassHeight) {
-                tileType = palette["grass"];
+                tileType = "grass"
+                tileColour = palette[tileType];
             }
 
-            tiles.push({x, y, height: tileHeight, hexRadius, colour: tileType});
+            tiles.push({x, y, height: tileHeight, hexRadius, colour: tileColour, type: tileType});
         }
     }
     return tiles;
@@ -107,7 +113,7 @@ function generateTrees({tiles}) {
         const random = Math.floor(Math.random() * TreeModels.length);
         const chosenTreeModel = TreeModels[random];
 
-        if (current_tile.colour == "#0E86CC") { // This should be changed later in generateTiles to reflect not the colour but the type in string form
+        if (current_tile.type === "water") {
             isWater = true;
         }
 

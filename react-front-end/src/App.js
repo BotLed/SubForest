@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import Scene from "./components/Scene";
 import World from "./components/World";
 
 function App() {
