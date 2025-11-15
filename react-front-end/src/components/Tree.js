@@ -4,8 +4,8 @@ import { useRef, useEffect } from "react";
 export default function Tree({height, position, model}) {
     const MODELS = {
         "Oak" : 'assets/tree.glb',
-        "Spruce" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-lime/model.gltf',
-        "Birch" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-spruce/model.gltf',
+        //"Spruce" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-lime/model.gltf',
+        //"Birch" : 'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/tree-spruce/model.gltf',
         "Fall_Tree" : 'assets/fall_tree.glb',
         "Tree_Stump" : 'assets/tree_stump.glb'
     }
@@ -26,10 +26,6 @@ export default function Tree({height, position, model}) {
             if(model === "Tree_Stump") {
                 refToTree.current.scale.set(50, 50, 50);
             }
-            if(model === "Spruce" || model === "Birch") {
-                refToTree.current.scale.set(2, 2, 2);
-            }
-
         }
       }, [position, height]);
 
