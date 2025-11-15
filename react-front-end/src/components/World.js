@@ -129,30 +129,6 @@ function generateTrees({tiles}) {
 }
 
 
-/* Test render function for River Generation
-* - Pick two random points on the edge of the grid (we can find this by drawing ring maybe?)
-* - Use linear interpolatino for getting array of tiles making up a line of hexes from one point
-*   to the other
-* - Render these tiles as water tiles
-*
-* - CONSIDER how to variate width of river
-**/
-function tilesToBeModified({tiles}) {
-    const modifiledTiles = [];
-    
-
-    for(let i = 0; i < tiles.length; i++) {
-        if(tiles[i].type == "mountain") {
-            let current_tile = tiles[i];
-            console.log(current_tile);
-            modifiledTiles.push({x: current_tile.x, y: current_tile.y, height: current_tile.height, colour: "#EE4B2B"})
-        }
-    }
-
-    return modifiledTiles;
-}
-
-
 /* I figured out how to use Instances to reduce the 3500 draw calls (INSANITY) but I don't like how it takes
 * away customization and it feels janky/weird.
 * I'll think about it more but I don't like sacrifing my Tile component.
@@ -180,20 +156,26 @@ function RenderMap({tiles, trees}) {
 }
 
 
-function ModifyTiles({tiles}) {
-    return (
-        <mesh>
-        {tiles.map((tile, index) => (
-            <Tile
-            key={index}
-            height = {tile.height}
-            position={new THREE.Vector2(1000, tile.y)} 
-            radius={tile.hexRadius} 
-            colour={"#EE4B2B"}
-            />
-        ))}
-        </mesh>
-    )
+/* Test render function for River Generation
+* - Pick two random points on the edge of the grid (we can find this by drawing ring maybe?)
+* - Use linear interpolatino for getting array of tiles making up a line of hexes from one point
+*   to the other
+* - Render these tiles as water tiles
+*
+* - CONSIDER how to variate width of river
+**/
+function tilesToBeModified({tiles, type}) {
+    return tiles.map(tile => {
+        if(tile.type == type) {
+            return {
+                ...tile, // Spread operator: copies all other tile attributes, only changes colour
+                height: 0,
+                colour: "#0E86CC"
+            };
+            
+        }
+        return tile; // Else return the tile without its colour being changed
+    })
 }
 
 
@@ -201,7 +183,7 @@ export default function World() {
     const [titleText, setTitleText] = useState('');
     const [tiles, setTiles] = useState([]);
     const [trees, setTrees] = useState([]);
-    const [modifiedTiles, setModTiles] = useState([]);
+
 
     
     // TEMPORARY - MOVE TO SEPARATE FUNCTION LATER
@@ -217,10 +199,11 @@ export default function World() {
     useEffect(() => {
         const tiles = generateTiles({ gridRadius: 35, hexRadius: 6, maxHeight: 5, heightVariance: 15 });
         const trees = generateTrees({tiles: tiles})
-        const modTiles = tilesToBeModified({tiles})
+
+        const modified = tilesToBeModified({tiles: tiles, type: "ldirt"})
+
         setTiles(tiles)
         setTrees(trees)
-        setModTiles(modifiedTiles)
     }, [])
 
     const centerX = 0;
@@ -246,10 +229,10 @@ export default function World() {
                 /> 
 
                 <OrbitControls target={[centerX, 10, centerY + 5]}/>
-
+                
                 <RenderMap tiles={tiles} trees={trees}/>
 
-                <ModifyTiles tiles={modifiedTiles}/>
+                
             </Canvas>
         </div>
     )
