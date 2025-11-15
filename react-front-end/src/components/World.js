@@ -105,7 +105,7 @@ function generateTiles({gridRadius, hexRadius, maxHeight, heightVariance}) {
 
 
 function generateTrees({tiles}) {
-    const TreeModels = ["Oak", "Spruce", "Birch", "Tree_Stump"];
+    const TreeModels = ["Oak", "Tree_Stump"];
     const trees = [];
     const TREE_FREQUENCY = 0.965
 
@@ -123,16 +123,35 @@ function generateTrees({tiles}) {
         // Determines if a tree is placed on current tile
         if(Math.random() > TREE_FREQUENCY && !(isWater)) {
             trees.push({x: current_tile.x , y: current_tile.y, height: current_tile.height, chosenTreeModel})
-            console.log(chosenTreeModel);
         }
     }
     return trees;
 }
 
 
-function test({tiles}) {
+/* Test render function for River Generation
+* - Pick two random points on the edge of the grid (we can find this by drawing ring maybe?)
+* - Use linear interpolatino for getting array of tiles making up a line of hexes from one point
+*   to the other
+* - Render these tiles as water tiles
+*
+* - CONSIDER how to variate width of river
+**/
+function tilesToBeModified({tiles}) {
+    const modifiledTiles = [];
+    
 
+    for(let i = 0; i < tiles.length; i++) {
+        if(tiles[i].type == "mountain") {
+            let current_tile = tiles[i];
+            console.log(current_tile);
+            modifiledTiles.push({x: current_tile.x, y: current_tile.y, height: current_tile.height, colour: "#EE4B2B"})
+        }
+    }
+
+    return modifiledTiles;
 }
+
 
 /* I figured out how to use Instances to reduce the 3500 draw calls (INSANITY) but I don't like how it takes
 * away customization and it feels janky/weird.
@@ -161,10 +180,29 @@ function RenderMap({tiles, trees}) {
 }
 
 
+function ModifyTiles({tiles}) {
+    return (
+        <mesh>
+        {tiles.map((tile, index) => (
+            <Tile
+            key={index}
+            height = {tile.height}
+            position={new THREE.Vector2(1000, tile.y)} 
+            radius={tile.hexRadius} 
+            colour={"#EE4B2B"}
+            />
+        ))}
+        </mesh>
+    )
+}
+
+
 export default function World() {
     const [titleText, setTitleText] = useState('');
     const [tiles, setTiles] = useState([]);
     const [trees, setTrees] = useState([]);
+    const [modifiedTiles, setModTiles] = useState([]);
+
     
     // TEMPORARY - MOVE TO SEPARATE FUNCTION LATER
     useEffect(() => {
@@ -175,11 +213,14 @@ export default function World() {
         });
     }, []); // Empty dependency array to run once on mount
 
+    // ** Generation Funtions that are used to create the objects then rendered by the render components**
     useEffect(() => {
         const tiles = generateTiles({ gridRadius: 35, hexRadius: 6, maxHeight: 5, heightVariance: 15 });
         const trees = generateTrees({tiles: tiles})
+        const modTiles = tilesToBeModified({tiles})
         setTiles(tiles)
         setTrees(trees)
+        setModTiles(modifiedTiles)
     }, [])
 
     const centerX = 0;
@@ -207,6 +248,8 @@ export default function World() {
                 <OrbitControls target={[centerX, 10, centerY + 5]}/>
 
                 <RenderMap tiles={tiles} trees={trees}/>
+
+                <ModifyTiles tiles={modifiedTiles}/>
             </Canvas>
         </div>
     )
